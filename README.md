@@ -1,13 +1,25 @@
 # Building Notepad++.app for macOS
+# Quick start
+
+Review the script before running for safety. Run it directly from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/auviis/npp_app/main/install.sh | bash
+```
+
+Or download and run locally:
+
+```bash
+curl -fsSL -o install.sh https://raw.githubusercontent.com/auviis/npp_app/main/install.sh
+chmod +x install.sh
+./install.sh
+```
+# Building Notepad++.app for macOS
 
 This document explains how to build a native macOS `.app` bundle that wraps the Windows version of Notepad++ to run via Wine.
 
 ## Prerequisites
 
-- macOS with Xcode Command Line Tools installed
-- Wine installed (e.g., via Homebrew: `brew install --cask wine-stable`)
-- Notepad++ portable Windows version
-- Swift compiler (included with Xcode CLT)
 
 ## Directory Structure
 
@@ -112,10 +124,6 @@ killall Finder
 2. **Apple Event Handling**: The Swift code implements `NSApplicationDelegate` methods:
    - `applicationDidFinishLaunching`: Handles direct app launch (double-click)
    - `application:openFile:`: Handles "Open With" file opening
-3. **Path Conversion**: Uses `winepath` to convert macOS paths (e.g., `/Users/...`) to Windows paths (e.g., `Z:\Users\...`)
-4. **Wine Execution**: Launches Notepad++ via Wine with converted paths
-5. **Auto-termination**: The wrapper app exits after 0.5s, leaving Notepad++ running
-
 ## Troubleshooting
 
 **"App is damaged" error**: Clear quarantine attributes:
