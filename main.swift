@@ -1,5 +1,30 @@
 import Cocoa
 
+/// Returns the absolute path of an executable by checking `which` and common locations
+func findExecutable(_ name: String) -> String? {
+    let which = Process()
+    which.launchPath = "/usr/bin/which"
+    which.arguments = [name]
+    let pipe = Pipe()
+    which.standardOutput = pipe
+    which.launch()
+    which.waitUntilExit()
+
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !path.isEmpty {
+        return path
+    }
+
+    let candidates = ["/usr/local/bin/\(name)", "/opt/homebrew/bin/\(name)", "/usr/bin/\(name)"]
+    for p in candidates {
+        if FileManager.default.isExecutableFile(atPath: p) {
+            return p
+        }
+    }
+
+    return nil
+}
+
 /// AppDelegate handles macOS application events for Notepad++ Wine wrapper
 class AppDelegate: NSObject, NSApplicationDelegate {
     
@@ -22,8 +47,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Launches Notepad++ via Wine with optional file path
     /// - Parameter filePath: Optional macOS file path to open in Notepad++
     func launchNotepad(with filePath: String? = nil) {
-        let task = Process() 
-        task.launchPath = "/usr/local/bin/wine"
+        let task = Process()
+
+        guard let wineExec = findExecutable("wine") else {
+            print("Wine not found in PATH or common locations.")
+            return
+        }
+        task.launchPath = wineExec
         let bundlePath = Bundle.main.bundlePath
         let resPath = URL(fileURLWithPath: bundlePath).appendingPathComponent("Contents/Resources/npp.8.9.portable").path
         task.currentDirectoryPath = resPath
@@ -33,7 +63,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Convert macOS path to Windows path if file is provided
         if let file = filePath {
             let winepath = Process()
-            winepath.launchPath = "/usr/local/bin/winepath"
+            if let winepathExec = findExecutable("winepath") {
+                winepath.launchPath = winepathExec
+            } else {
+                let wineDir = (task.launchPath ?? "").split(separator: "/").dropLast().joined(separator: "/")
+                winepath.launchPath = wineDir.isEmpty ? "/usr/local/bin/winepath" : "\(wineDir)/winepath"
+            }
             winepath.arguments = ["-w", file]
             
             let pipe = Pipe()
