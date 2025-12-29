@@ -31,6 +31,28 @@ unzip -oq "$TMPZIP" -d "$DEST_DIR"
 
 rm -f "$TMPZIP"
 
+# If running on Apple Silicon (arm64) use the arm binary; otherwise keep x86
+# Detect host architecture and move/remove bundled binaries accordingly.
+ARCH=$(uname -m)
+if [ "$ARCH" = "arm64" ]; then
+	if [ -f "Notepad++.app/Contents/MacOS/Notepad++arm" ]; then
+		rm -f "Notepad++.app/Contents/MacOS/Notepad++" || true
+		mv "Notepad++.app/Contents/MacOS/Notepad++arm" "Notepad++.app/Contents/MacOS/Notepad++"
+		echo "Using Apple Silicon (arm64) binary"
+	else
+		echo "arm64 detected but arm binary not found; leaving bundle as-is"
+	fi
+elif [ "$ARCH" = "x86_64" ]; then
+	if [ -f "Notepad++.app/Contents/MacOS/Notepad++arm" ]; then
+		rm -f "Notepad++.app/Contents/MacOS/Notepad++arm"
+		echo "Removed arm binary for x86_64 host"
+	else
+		echo "x86_64 detected; no arm binary present"
+	fi
+else
+	echo "Unknown architecture: $ARCH — leaving bundle as-is"
+fi
+
 xattr -cr "Notepad++.app"
 rm -rf /Applications/Notepad++.app || true
 mv "Notepad++.app"  /Applications/
